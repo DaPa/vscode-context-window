@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
 			provider.unpin();
 		}));
 
-    // 注册显示上下文窗口的命令
+    // Register the command to display the context window
     context.subscriptions.push(
         vscode.commands.registerCommand('vscode-context-window.showContextWindow', () => {
             provider.show();
@@ -32,9 +32,9 @@ export function activate(context: vscode.ExtensionContext) {
             foreground?: string;
         };
     }>;
-    let includeColor = '#0000FF'; // 默认颜色
+    let includeColor = '#0000FF'; // default color
 
-    // 查找 include 关键字的颜色设置
+    // Find the color setting of the 'include' keyword
     for (const rule of semanticHighlighting) {
         if (rule.scope === 'keyword.control.directive.include') {
             includeColor = rule.settings.foreground || includeColor;
@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
         color: includeColor,
         fontStyle: fontWeight === 'bold' ? 'oblique' : 'normal',
         fontWeight: fontWeight,
-        //textDecoration: `none; font-size: ${fontSize}px`  // 使用 textDecoration 来设置字体大小
+        //textDecoration: `none; font-size: ${fontSize}px`  // Use 'textDecoration' to set the font size
     });
 
     function updateDecorations() {
@@ -95,7 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (e.affectsConfiguration('editor.fontWeight') ||
             e.affectsConfiguration('editor.fontSize') ||
             e.affectsConfiguration('editor.tokenColorCustomizations')) {
-            // 重新获取颜色设置
+            // Re-get the color settings
             const config = vscode.workspace.getConfiguration('editor.tokenColorCustomizations');
             const semanticHighlighting = (config?.get('textMateRules') || []) as Array<{
                 scope: string;
@@ -104,7 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
                 };
             }>;
             
-            // 更新颜色
+            // Update the color
             for (const rule of semanticHighlighting) {
                 if (rule.scope === 'keyword.control.directive.include') {
                     includeColor = rule.settings.foreground || '#0000FF';
@@ -112,11 +112,11 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             }
 
-            // 获取新的字体设置
+            // Get the new font settings
             const editorConfig = vscode.workspace.getConfiguration('editor');
             const newFontWeight = String(editorConfig.get('fontWeight') || 'normal');
 
-            // 更新装饰器
+            // Update the decorator
             decorationTypeInclude.dispose();
             decorationTypeInclude = vscode.window.createTextEditorDecorationType({
                 color: includeColor,

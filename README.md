@@ -21,7 +21,7 @@ Please check out that extension if you just want documentation in the panel or s
 
 - `contextView.contextWindow.updateMode` — Controls how the documentation view is updated when the cursor moves. Possible values:
 
-    - `live` — (default) The context always tracks the current cursor position.
+    - `live` — (default) The context always tracks the current cursor position.
     - `sticky` — The context tracks the current cursor position. However if there is no symbol at the current position, it continues showing the previous context.
 
 ## Commands
