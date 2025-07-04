@@ -2,6 +2,9 @@
 
 VS Code extension that displays the full code context of the current symbol in the sidebar or panel, similar to the context window in Source Insight.
 
+Direct VSCode install link: [zhiminxiong.context-window](https://marketplace.visualstudio.com/items?itemName=zhiminxiong.context-window).
+
+
 ## Special Thanks To
 
 This extension is adapted/modified from `Definition View`: https://github.com/stevepryde/vscode-def-view.git
