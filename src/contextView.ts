@@ -70,6 +70,14 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                     });
                 }
             }
+            if (e.affectsConfiguration('contextView.contextWindow')) {
+                // Re-obtain the configuration and send it to the webview
+                const newConfig = this._getVSCodeEditorConfiguration();
+                this._view?.webview.postMessage({
+                    type: 'updateContextEditorCfg',
+                    contextEditorCfg: newConfig.contextEditorCfg
+                });
+            }
         }, null, this._disposables);
 
         // Listens for changes to workspace folders (when user adds/removes folders)
@@ -190,6 +198,13 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
         }, null, this._disposables);
     }
 
+    public postMessage(message: any) {
+        if (this._view) {
+            console.log('[definition] postMessage', message);
+            this._view.webview.postMessage(message);
+        }
+    }
+
     private getCurrentContent() : HistoryInfo {
         return (this._history && this._history.length > this._historyIndex) ? this._history[this._historyIndex] : { content: undefined, curLine: -1 };
     }
@@ -230,12 +245,14 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
     private _getVSCodeEditorConfiguration(): any {
         // Get all editor related configurations
         const editorConfig = vscode.workspace.getConfiguration('editor');
+        const contextWindowConfig = vscode.workspace.getConfiguration('contextView.contextWindow');
         const currentTheme = this._getVSCodeTheme();
         
         // Build the configuration object
         const config: {
             theme: string;
             editorOptions: any;
+            contextEditorCfg: any;
             customThemeRules?: any[];
         } = {
             theme: this._getVSCodeTheme(),
@@ -244,6 +261,12 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                 ...Object.assign({}, editorConfig),
                 links: true
             },
+            contextEditorCfg: {
+                selectionBackground: contextWindowConfig.get('selectionBackground', '#07c2db71'),
+                inactiveSelectionBackground: contextWindowConfig.get('inactiveSelectionBackground', '#07c2db71'),
+                selectionHighlightBackground: contextWindowConfig.get('selectionHighlightBackground', '#5bdb0771'),
+                selectionHighlightBorder: contextWindowConfig.get('selectionHighlightBorder', '#5bdb0791')
+            }
         };
 
         // Add custom theme rules only under light theme
@@ -425,6 +448,11 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(async message => {
             //console.log('[definition] webview message', message);
             switch (message.type) {
+                case 'setContextFocus':
+                    // Set the context directly without making any additional judgments
+                    vscode.commands.executeCommand('setContext', 'contextView.context.focus', message.hasFocus);
+                    //console.log('[definition] Monaco focus set to:', message.hasFocus);
+                    break;
                 case 'navigate':
                     this.navigate(message.direction);
                     break;
@@ -443,7 +471,7 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                             );
 
                             if (definitions && definitions.length > 0) {
-                                //console.log('[definition] jumpDefinition: ', definitions);
+                                console.log('[definition] jumpDefinition: ', definitions);
                                 
                                 // Actively hide the definition list (before processing new jumps)
                                 if (this._view && definitions.length === 1) {
@@ -760,6 +788,7 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                     width: 30%;
                     min-width: 150px;
                     max-width: 50%;
+                    cursor: default !important;
                     background-color: var(--vscode-editor-background);
                     border-right: 1px solid var(--vscode-editorWidget-border);
                     overflow-y: auto;
@@ -769,6 +798,8 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                     flex-direction: column;
                     padding-bottom: 10px;
                 }
+
+                /* todo: The following scroll bar controls can be removed. The actual scroll bar used is the browser's own scroll bar, which cannot be controlled by the following code */
 
                 /* Adjust the vertical scroll bar to avoid covering the drag area */
                 #definition-list::-webkit-scrollbar-track-piece:end {
@@ -784,8 +815,8 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
 
                 /* Defines the list scroll bar style */
                 #definition-list::-webkit-scrollbar {
-                    width: 8px;
-                    height: 8px;
+                    width: 6px;
+                    height: 6px;
                 }
 
                 #definition-list::-webkit-scrollbar-track {
@@ -858,7 +889,7 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                 }
 
                 .definition-item {
-                    padding: 8px 12px;
+                    padding: 4px 6px;
                     cursor: pointer;
                     color: var(--vscode-foreground);
                     font-size: 13px;
@@ -870,16 +901,17 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                     box-sizing: border-box;
                     display: flex;
                     align-items: center;
-                    min-height: 32px;
+                    min-height: 16px;
                 }
 
                 .definition-item:hover {
                     background-color: var(--vscode-list-hoverBackground);
+                    color: var(--vscode-list-hoverForeground);
                 }
 
                 .definition-item.active {
-                    background-color: #ffd700;
-                    color: #000000;
+                    background-color: var(--vscode-list-activeSelectionBackground);
+                    color: var(--vscode-list-activeSelectionForeground);
                 }
 
                 .definition-item .definition-number {
@@ -996,7 +1028,7 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
                     max-width: 100%;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    white-space: nowrap;
+                    white-space: pre;
                     z-index: 1002;
                     padding-left: 60px;
                 }
@@ -1223,7 +1255,7 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
             updatePromise,
 
             // Don't show progress indicator right away, which causes a flash
-            new Promise<void>(resolve => setTimeout(resolve, 200)).then(() => {
+            new Promise<void>(resolve => setTimeout(resolve, 0)).then(() => {
                 if (loadingEntry.cts.token.isCancellationRequested) {
                     return;
                 }
@@ -1303,42 +1335,6 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
     private updateConfiguration() {
         const config = vscode.workspace.getConfiguration('contextView');
         this._updateMode = config.get<UpdateMode>('contextWindow.updateMode') || UpdateMode.Sticky;
-    }
-
-    private getLanguageIdFromFilePath(filePath: string): string {
-        const extension = filePath.split('.').pop()?.toLowerCase();
-        
-        const languageMap: { [key: string]: string } = {
-            'ts': 'typescript',
-            'js': 'javascript',
-            'jsx': 'javascriptreact',
-            'tsx': 'typescriptreact',
-            'cpp': 'cpp',
-            'c': 'c',
-            'cs': 'csharp',
-            'py': 'python',
-            'java': 'java',
-            'go': 'go',
-            'rs': 'rust',
-            'swift': 'swift',
-            'kt': 'kotlin',
-            'sql': 'sql',
-            'vue': 'vue',
-            'php': 'php',
-            'rb': 'ruby',
-            'scala': 'scala',
-            'lua': 'lua',
-            'sh': 'shell',
-            'html': 'html',
-            'css': 'css',
-            'json': 'json',
-            'md': 'markdown',
-            'xml': 'xml',
-            'yaml': 'yaml',
-            'yml': 'yaml'
-        };
-
-        return languageMap[extension || ''] || 'plaintext';
     }
 
     private async showDefinitionPicker(definitions: any[], editor: vscode.TextEditor, currentPosition?: vscode.Position): Promise<any> {
@@ -1444,187 +1440,6 @@ export class ContextWindowProvider implements vscode.WebviewViewProvider {
             //console.error('Error preparing definitions:', error);
             return definitions[0]; // On error, returns the first definition
         }
-    }
-
-    private getDefinitionSelectorWebviewContent(items: any[]): string {
-        const itemsHtml = items.map(item => `
-            <div class="item" ondblclick="selectDefinition('${item.label}')">
-                <div class="header">
-                    <strong>${item.label}</strong>
-                    <p>${item.description}</p>
-                </div>
-                <div class="code-container">
-                    <pre><code>${item.detail}</code></pre>
-                </div>
-            </div>
-        `).join('');
-
-        return `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    body { 
-                        font-family: Arial, sans-serif; 
-                        margin: 0;
-                        padding: 0;
-                        max-height: 100vh;
-                        overflow-y: auto;
-                        overflow-x: hidden;
-                    }
-                    .item { 
-                        padding: 10px; 
-                        border-bottom: 1px solid #ccc; 
-                        cursor: pointer;
-                    }
-                    .item:hover { 
-                        background-color:rgba(0, 120, 212, 0.27);
-                    }
-                    .item.selected {
-                        background-color: rgba(0, 120, 212, 0.27);
-                        border-left: 3px solid #0078d4;
-                    }
-                    .header {
-                        margin-bottom: 8px;
-                    }
-                    .code-container {
-                        position: relative;
-                        width: 100%;
-                        overflow-x: auto;
-                        background-color: #fafafa;
-                        border-radius: 4px;
-                        padding: 8px;  // Add horizontal padding to container
-                    }
-                    pre { 
-                        margin: 0;
-                        white-space: pre !important;
-                        word-wrap: normal !important;
-                        padding: 8px 24px;
-                        background: transparent;
-                        display: inline-block;
-                        min-width: fit-content;
-                    }
-                    code {
-                        white-space: pre !important;
-                        word-wrap: normal !important;
-                        display: inline-block;
-                        font-family: var(--vscode-editor-font-family);
-                        width: max-content;
-                    }
-                    mark {
-                        background-color: #ffe58f;
-                        padding: 2px 0;
-                    }
-                </style>
-            </head>
-            <body>
-                ${itemsHtml}
-                <script>
-                    const vscode = acquireVsCodeApi();
-                    let mouseDownTarget = null;
-                let mouseDownPosition = null;
-
-                function selectDefinition(label) {
-                    vscode.postMessage({ command: 'selectDefinition', label });
-                }
-
-                // Add keyboard event listener to handle ESC key
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        vscode.postMessage({ command: 'escapePressed' });
-                    }
-                     else if ((e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')) || 
-                            (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n'))) {
-                        //console.log('[definition] ArrowUp or ArrowDown pressed');
-                        // Preventing default scrolling behavior
-                        e.preventDefault();
-                        // Get all options
-                        const items = Array.from(document.querySelectorAll('.item'));
-                        // Get the currently selected item
-                        const current = document.querySelector('.item.selected');
-                        let index = current ? items.indexOf(current) : -1;
-                        
-                        // Calculate the index of the newly selected item
-                        if (e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')) {
-                            index = Math.max(index - 1, 0);
-                        } else if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n')) {
-                            index = Math.min(index + 1, items.length - 1);
-                        }
-                        
-                        // Update selected state
-                        items.forEach((item, i) => {
-                            item.classList.toggle('selected', i === index);
-                        });
-                        // Add scroll centering effect
-                        if (index >= 0) {
-                            const selectedItem = items[index];
-                            const itemHeight = selectedItem.offsetHeight;
-                            const containerHeight = document.body.offsetHeight;
-                            const scrollTop = selectedItem.offsetTop - (containerHeight / 2) + (itemHeight / 2);
-                            
-                            // Make sure the scroll container is the 'body' element
-                            const scrollContainer = document.documentElement || document.body;
-                            
-                            // Add bounds checking
-                            const maxScroll = scrollContainer.scrollHeight - containerHeight;
-                            const finalScrollTop = Math.max(0, Math.min(scrollTop, maxScroll));
-                            
-                            scrollContainer.scrollTo({
-                                top: finalScrollTop,
-                                behavior: 'smooth'
-                            });
-                        }
-                    } else if (e.key === 'Enter') {
-                        // Handling the Enter key
-                        const selected = document.querySelector('.item.selected');
-                        if (selected) {
-                            const label = selected.querySelector('strong').textContent;
-                            selectDefinition(label);
-                        }
-                    }
-                });
-
-                // Handle mouse events on items
-                document.querySelectorAll('.item').forEach(item => {
-                    // Remove the ondblclick attribute from HTML
-                    item.removeAttribute('ondblclick');
-                    
-                    // Track mouse down position
-                    item.addEventListener('mousedown', (e) => {
-                        mouseDownTarget = e.target;
-                        mouseDownPosition = { x: e.clientX, y: e.clientY };
-                    });
-
-                    // Check on mouse up if we should trigger the click
-                    item.addEventListener('mouseup', (e) => {
-                        if (mouseDownTarget && mouseDownPosition) {
-                            // Check if mouse moved significantly
-                            const moveThreshold = 5; // pixels
-                            const xDiff = Math.abs(e.clientX - mouseDownPosition.x);
-                            const yDiff = Math.abs(e.clientY - mouseDownPosition.y);
-                            
-                            if (xDiff <= moveThreshold && yDiff <= moveThreshold) {
-                                const label = item.querySelector('strong').textContent;
-                                selectDefinition(label);
-                            }
-                        }
-                        // Reset tracking variables
-                        mouseDownTarget = null;
-                        mouseDownPosition = null;
-                    });
-                });
-
-                // Reset tracking variables if mouse leaves the item
-                document.addEventListener('mouseleave', () => {
-                    mouseDownTarget = null;
-                    mouseDownPosition = null;
-                });
-                </script>
-            </body>
-            </html>
-        `;
     }
 }
 

@@ -108,12 +108,20 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
 
                 // If there are custom theme rules
                 if (window.vsCodeEditorConfiguration && window.vsCodeEditorConfiguration.customThemeRules) {
+                    const contextEditorCfg = window.vsCodeEditorConfiguration.contextEditorCfg || {};
                     // Define a custom theme
                     monaco.editor.defineTheme('custom-vs', {
                         base: light ? 'vs' : 'vs-dark',  // based on vs theme
                         inherit: true,  // Inherit the rules of the base theme
                         rules: window.vsCodeEditorConfiguration.customThemeRules,
-                        colors: {}
+                        colors: {
+                            "editor.selectionBackground": contextEditorCfg.selectionBackground || "#07c2db71",// #ffb7007f
+                            //"editor.selectionForeground": "#ffffffff",
+                            "editor.inactiveSelectionBackground": contextEditorCfg.inactiveSelectionBackground || "#07c2db71",
+                            "editor.selectionHighlightBackground": contextEditorCfg.selectionHighlightBackground || "#5bdb0771",// Ffb700a0
+                            "editor.selectionHighlightBorder": contextEditorCfg.selectionHighlightBorder || "#5bdb0791",
+                            //"editor.background": "#e6e6e6",
+                        }
                     });
                     
                     // Use a custom theme
@@ -243,8 +251,8 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         domReadOnly: true,
                         mouseStyle: 'pointer',
                         cursorWidth: 0,
-                        selectOnLineNumbers: false,  // Disable line number selection
-                        selectionClipboard: false,    // Disable selection to clipboard
+                        selectOnLineNumbers: true,  // Disable line number selection
+                        selectionClipboard: true,    // Disable selection to clipboard
                         contextmenu: false,           // Disable right-click menu
                         links: false,  // Disable all link functions
                         quickSuggestions: false,  // Disable quick suggestions
@@ -255,6 +263,41 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             seedSearchStringFromSelection: 'never'
                         }
                     });
+
+                    // After Monaco Editor is initialized, clear the default search shortcuts
+                    function clearMonacoDefaultKeybindings() {
+                        if (!editor || !editor._standaloneKeybindingService) return;
+                        
+                        // Monaco's default search-related shortcut keys
+                        const defaultSearchCommands = [
+                            'actions.find',                    // Ctrl+F
+                            'toggleFindCaseSensitive',         // Alt+C
+                            'toggleFindWholeWord',             // Alt+W
+                            'toggleFindRegex',                 // Alt+R
+                            'editor.action.nextMatchFindAction', // F3
+                            'editor.action.previousMatchFindAction', // Shift+F3
+                            'editor.action.startFindReplaceAction', // Ctrl+H
+                            'editor.action.replaceAll',        // Ctrl+Shift+H
+                            'editor.action.selectAllMatches',  // Ctrl+Shift+L
+                            'editor.action.addSelectionToNextFindMatch', // Ctrl+D
+                            'editor.action.moveSelectionToNextFindMatch', // Ctrl+K Ctrl+D
+                            'editor.action.removeSelectionFromNextFindMatch' // Ctrl+U
+                        ];
+                        
+                        // Remove all default search shortcut key bindings
+                        defaultSearchCommands.forEach(command => {
+                            editor._standaloneKeybindingService.addDynamicKeybinding(
+                                `-${command}`,
+                                null,
+                                () => {}
+                            );
+                        });
+                        
+                        console.log('[definition] Cleared Monaco default search keybindings');
+                    }
+
+                    // Called after Monaco Editor is created
+                    clearMonacoDefaultKeybindings();
 
                     // Force the mouse style to be set
                     const forcePointerCursor = (isOverText = false) => {
@@ -274,6 +317,17 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
 
                     // Set to the default cursor during initialization
                     forcePointerCursor(false);
+
+                    // Define the language list using JavaScript provider as default
+                    const defaultLanguages = [
+                        'python', 'java', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin', 'perl', 'lua', 'vb', 'vbnet', 'cobol', 'fortran', 'pascal', 'delphi', 'ada',
+                        'erlang', 
+                    ];
+
+                    // Set up the JavaScript provider for the default language
+                    defaultLanguages.forEach(lang => {
+                        monaco.languages.setMonarchTokensProvider(lang, languageConfig_js);
+                    });
 
                     // Define a custom token provider for JavaScript
                     monaco.languages.setMonarchTokensProvider('javascript', languageConfig_js);
@@ -336,11 +390,11 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                     // Disable keyboard events completely
                     editor.onKeyDown((e) => {
                         // Allow Ctrl+C to copy
-                        if (e.ctrlKey && e.code === 'KeyC') {
-                            return;
-                        }
-                        e.preventDefault();
-                        e.stopPropagation();
+                        // if (e.ctrlKey && e.code === 'KeyC') {
+                        //     return;
+                        // }
+                        // e.preventDefault();
+                        // e.stopPropagation();
                     });
 
                     // Disable selection completely
@@ -374,6 +428,32 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
 
                             return false;
                         }, true); // Use the capture phase to ensure that the event is intercepted before it reaches Monaco
+
+                        editorDomNode.addEventListener('contextmenu', (e) => {
+                                if (e.ctrlKey) {
+                                    // Ctrl+right click to manually pop up the Monaco menu
+                                    // Need to call Monaco's menu API
+                                    // The following is a common practice (different versions of the API are slightly different)
+                                    if (editor._contextMenuService) {
+                                        // 6.x/7.x version
+                                        editor._contextMenuService.showContextMenu({
+                                            getAnchor: () => ({ x: e.clientX, y: e.clientY }),
+                                            getActions: () => editor._getMenuActions(),
+                                            onHide: () => {},
+                                        });
+                                    } else if (editor.trigger) {
+                                        // Old version
+                                        editor.trigger('keyboard', 'editor.action.showContextMenu', {});
+                                    }
+                                } else {
+                                    // Normal right click, execute your own logic
+                                    editor.focus();
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    // Write your own right-click menu logic here
+                                    //console.log('Custom right-click menu');
+                                }
+                            }, true);
                     }
 
                     editorDomNode.addEventListener('selectstart', (e) => {
@@ -404,6 +484,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                     editor.onMouseDown((e) => {
                         e.event.preventDefault();
                         e.event.stopPropagation();
+                        //console.log('[definition] onMouseDown: ', e);
                         return false;  // Prevent default processing
                     });
 
@@ -537,7 +618,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         //const isLeftClick = (e.event.buttons & 1) === 1; // Left button
                         //const isRightClick = (e.event.buttons & 2) === 2; // Right click
                         
-                        if (e.event.leftButton && e.target.type === monaco.editor.MouseTargetType.CONTENT_TEXT) {
+                        if (e.target.type === monaco.editor.MouseTargetType.CONTENT_TEXT) {
                             // Get the current word
                             const model = editor.getModel();
                             if (!model) {
@@ -548,28 +629,56 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             const position = e.target.position;
                             // Check if the click position is within the current selection range
                             const selection = editor.getSelection();
-                            const isClickedTextSelected = selection && !selection.isEmpty() && 
-                                selection.containsPosition(position);
+                            const isClickedTextSelected = selection && !selection.isEmpty() && selection.containsPosition(position);
                             if (model && position && !isClickedTextSelected) {
                                 const word = model.getWordAtPosition(position);
                                 if (word) {
-                                    //console.log('[definition] start to jump definition: ', word);
-                                    vscode.postMessage({
-                                                    type: 'jumpDefinition',
-                                                    uri: uri,
-                                                    token: word.word,
-                                                    position: {
-                                                        line: position.lineNumber - 1,
-                                                        character: position.column - 1
-                                                    }
-                                                });
+                                    if (e.event.rightButton) {
+                                        //console.log('[definition] start to mid + jump definition: ', word);
+                                        editor.setSelection({
+                                            startLineNumber: position.lineNumber,
+                                            startColumn: word.startColumn,
+                                            endLineNumber: position.lineNumber,
+                                            endColumn: word.endColumn
+                                        });
+                                    } else {
+                                        //console.log('[definition] start to jump definition: ', word);
+                                        vscode.postMessage({
+                                                        type: 'jumpDefinition',
+                                                        uri: uri,
+                                                        token: word.word,
+                                                        position: {
+                                                            line: position.lineNumber - 1,
+                                                            character: position.column - 1
+                                                        }
+                                                    });
+                                    }
                                 }
                             }
                             return false;
                         }
+                        return false;
                     });
 
                     //console.log('[definition] Monaco editor created');
+
+                    // Monaco sets context when it gets focus
+                    editor.onDidFocusEditorText(() => {
+                        //console.log('[definition] Monaco gained focus');
+                        window.vscode.postMessage({
+                            type: 'setContextFocus',
+                            hasFocus: true
+                        });
+                    });
+                    
+                    // Monaco clears context when it loses focus
+                    editor.onDidBlurEditorText(() => {
+                        //console.log('[definition] Monaco lost focus');
+                        window.vscode.postMessage({
+                            type: 'setContextFocus',
+                            hasFocus: false
+                        });
+                    });
 
                     // Notify the extension that the editor is ready
                     vscode.postMessage({ type: 'editorReady' });
@@ -585,8 +694,16 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         if (uri && filenameDisplay) {
                             // Extract the file name from the URI
                             const filename = uri.split('/').pop().split('\\').pop();
+                            let filePath = uri;
+                            try {
+                                filePath = decodeURIComponent(uri);
+                            } catch (e) {
+                                //console.log('[definition] Error decoding URI:', e);
+                                filePath = uri;
+                            }
+                            const displayText = `${filename}       (${filePath})`;
                             //console.log('[definition] File name:', filename, uri);
-                            filenameDisplay.textContent = filename || '';
+                            filenameDisplay.textContent = displayText || '';
                         } else if (filenameDisplay) {
                             filenameDisplay.textContent = '';
                         }
@@ -634,6 +751,8 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             const filePath = def.filePath;
                             const lineNumber = def.lineNumber + 1; // Convert to 1-based line number
                             const columnNumber = def.columnNumber || 1;
+
+                            //console.log('[definition] File name:', filePath, lineNumber, columnNumber);
                             
                             item.innerHTML = `
                                 <span class="definition-number">Definition ${index + 1}:</span>
@@ -877,6 +996,28 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                         }
                                     }
                                     break;*/
+                                case 'updateContextEditorCfg':
+                                    if (message.contextEditorCfg) {
+                                        // Redefine the theme
+                                        monaco.editor.defineTheme('custom-vs', {
+                                            base: light ? 'vs' : 'vs-dark',
+                                            inherit: true,
+                                            rules: window.vsCodeEditorConfiguration.customThemeRules,
+                                            colors: {
+                                                "editor.selectionBackground": message.contextEditorCfg.selectionBackground,
+                                                "editor.inactiveSelectionBackground": message.contextEditorCfg.inactiveSelectionBackground,
+                                                "editor.selectionHighlightBackground": message.contextEditorCfg.selectionHighlightBackground,
+                                                "editor.selectionHighlightBorder": message.contextEditorCfg.selectionHighlightBorder,
+                                                // ... other colors
+                                            }
+                                        });
+                                        
+                                        // Reapply the theme
+                                        if (editor) {
+                                            editor.updateOptions({ theme: 'custom-vs' });
+                                        }
+                                    }
+                                    break;
                                 case 'updateTheme':
                                     // Update editor theme
                                     if (editor && message.theme) {
@@ -1107,6 +1248,30 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                     setTimeout(() => {
                                         document.querySelector('.loading').classList.remove('active');
                                     }, 200);
+                                    break;
+                                case 'contextView.contextWindow.find':
+                                    editor.trigger('keyboard', 'actions.find', {});
+                                    break;
+                                case 'contextView.contextWindow.toggleFindCaseSensitive':
+                                    editor.trigger('keyboard', 'toggleFindCaseSensitive', {});
+                                    break;
+                                case 'contextView.contextWindow.toggleFindWholeWord':
+                                    editor.trigger('keyboard', 'toggleFindWholeWord', {});
+                                    break;
+                                case 'contextView.contextWindow.toggleFindRegex':
+                                    editor.trigger('keyboard', 'toggleFindRegex', {});
+                                    break;
+                                case 'contextView.contextWindow.findNext':
+                                    editor.trigger('keyboard', 'editor.action.nextMatchFindAction', {});
+                                    break;
+                                case 'contextView.contextWindow.findPrevious':
+                                    editor.trigger('keyboard', 'editor.action.previousMatchFindAction', {});
+                                    break;
+                                case 'contextView.contextWindow.replace':
+                                    editor.trigger('keyboard', 'editor.action.startFindReplaceAction', {});
+                                    break;
+                                case 'contextView.contextWindow.replaceAll':
+                                    editor.trigger('keyboard', 'editor.action.replaceAll', {});
                                     break;
                                 //default:
                                     //console.log('[definition] Unknown message type:', message.type);
