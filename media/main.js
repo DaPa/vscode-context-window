@@ -1,32 +1,32 @@
 //@ts-check
 
-// 导入语言配置
+// Import language configuration
 import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './languageConfig.js';
 
-// Monaco Editor 初始化和消息处理
+// Monaco Editor initialization and message processing
 (function() {
     const vscode = acquireVsCodeApi();
     window.vscode = vscode;
     //console.log('[definition] WebView script started from main.js');
 
-    // 确保 WebView 使用 VS Code 的颜色主题
+    // Make sure WebView uses VS Code's color theme
     //document.body.classList.add('vscode-light', 'vscode-dark', 'vscode-high-contrast');
     
-    // 显示加载状态
+    // Display loading status
     document.getElementById('main').style.display = 'block';
-    document.getElementById('main').innerHTML = '正在加载编辑器...';
+    document.getElementById('main').innerHTML = 'Loading editor...';
     document.getElementById('container').style.display = 'none';
     
-    // 添加错误处理
+    // Add error handling
     window.onerror = function(message, source, lineno, colno, error) {
         console.error('[definition] Global error:', message, 'at', source, lineno, colno, error);
         document.getElementById('main').style.display = 'block';
-        document.getElementById('main').innerHTML = `<div style="color: red; padding: 20px;">加载错误: ${message}</div>`;
+        document.getElementById('main').innerHTML = `<div style="color: red; padding: 20px;">Loading error: ${message}</div>`;
         return true;
     };
     
     try {
-        // 尝试从window对象获取Monaco路径
+        // Try to get the Monaco path from the window object
         const monacoPath = window.monacoScriptUri || '../node_modules/monaco-editor/min/vs';
         //console.log('[definition] Using Monaco path:', monacoPath);
 
@@ -34,7 +34,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
         let content = '';
         let language = '';
 
-        // 添加高亮样式
+        // Add highlight style
         const styleElement = document.createElement('style');
         styleElement.textContent = `
             .highlighted-line {
@@ -87,32 +87,32 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
         `;
         document.head.appendChild(styleElement);
         
-        // 动态加载Monaco loader.js
+        // Dynamically load Monaco loader.js
         const loaderScript = document.createElement('script');
         loaderScript.src = `${monacoPath}/loader.js`;
         loaderScript.onload = function() {
             //console.log('[definition] Monaco loader.js loaded');
             
-            // 现在可以安全地使用require
+            // Now it's safe to use require
             require.config({ 
                 paths: { 'vs': monacoPath }
             });
             
             //console.log('[definition] Require.js configured, attempting to load Monaco');
             
-            // 初始化编辑器
+            // Initialize the editor
             require(['vs/editor/editor.main'], function() {
                 //console.log('[definition] Monaco editor loaded');
 
                 let light = window.vsCodeEditorConfiguration?.theme === 'vs';
 
-                // 如果有自定义主题规则
+                // If there are custom theme rules
                 if (window.vsCodeEditorConfiguration && window.vsCodeEditorConfiguration.customThemeRules) {
                     const contextEditorCfg = window.vsCodeEditorConfiguration.contextEditorCfg || {};
-                    // 定义自定义主题
+                    // Define a custom theme
                     monaco.editor.defineTheme('custom-vs', {
-                        base: light ? 'vs' : 'vs-dark',  // 基于 vs 主题
-                        inherit: true,  // 继承基础主题的规则
+                        base: light ? 'vs' : 'vs-dark',  // based on vs theme
+                        inherit: true,  // Inherit the rules of the base theme
                         rules: window.vsCodeEditorConfiguration.customThemeRules,
                         colors: {
                             "editor.selectionBackground": contextEditorCfg.selectionBackground || "#07c2db71",// #ffb7007f
@@ -125,15 +125,15 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         }
                     });
                     
-                    // 使用自定义主题
+                    // Use a custom theme
                     window.vsCodeTheme = 'custom-vs';
                 }
                 
-                                                    // 隐藏加载状态，显示编辑器容器
+                                                    // Hide the loading state and display the editor container
                 document.getElementById('main').style.display = 'none';
                 document.getElementById('main-container').style.display = 'flex';
                 
-                // 初始化时显示Monaco编辑器（显示"Ready for content."）
+                // Display the Monaco editor when initializing (display "Ready for content.")
                 document.getElementById('container').style.display = 'block';
                 document.getElementById('main').style.display = 'none';
                 
@@ -148,11 +148,11 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         }
                     };
 
-                    // 处理 VS Code 编辑器配置
+                    // Handle VS Code editor configuration
                     const createEditorOptions = () => {
                         const vsCodeConfig = window.vsCodeEditorConfiguration?.editorOptions || {};
                         
-                        // 基础配置
+                        // Basic configuration
                         const baseOptions = {
                             value: 'Ready for content.',
                             language: 'plaintext',
@@ -161,7 +161,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             automaticLayout: true
                         };
 
-                        // 从 VS Code 配置中提取相关选项
+                        // Extract relevant options from VS Code configuration
                         const {
                             fontSize,
                             fontFamily,
@@ -186,26 +186,26 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
 
                         return {
                             ...baseOptions,
-                            // 字体相关
+                            // Font related
                             fontSize,
                             fontFamily,
                             lineHeight,
                             letterSpacing,
-                            // 编辑器行为
+                            // Editor behavior
                             tabSize,
                             insertSpaces,
                             wordWrap,
-                            // 视图选项
+                            // View options
                             minimap: minimap || { enabled: false },
                             scrollBeyondLastLine: scrollBeyondLastLine ?? false,
                             lineNumbers: lineNumbers || 'on',
                             renderWhitespace: renderWhitespace || 'true',
-                            // 光标选项
+                            // Cursor options
                             cursorStyle: 'pointer',
                             mouseStyle: 'pointer',
                             smoothScrolling: smoothScrolling ?? true,
                             tokenColorCustomizations,
-                            // 其他有效选项
+                            // Other valid options
                             ...otherOptions,
                             hover: {
                                 enabled: true,
@@ -213,9 +213,9 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                 delay: 200,
                                 sticky: true
                             },
-                            // 启用快速建议
+                            // Enable quick suggestions
                             quickSuggestions: true,
-                            // 启用导航历史
+                            // Enable navigation history
                             history: {
                                 undoStopAfter: false,
                                 undoStopBefore: false
@@ -223,57 +223,57 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         };
                     };
                     
-                    // 创建编辑器实例
+                    // Create an editor instance
                     const editor = monaco.editor.create(document.getElementById('container'), createEditorOptions(),
                     {
                         openerService: openerService
                     });
 
-                    // 添加ResizeObserver来监听容器大小变化（仅用于拖拽分隔条时重新布局）
+                    // Add ResizeObserver to monitor container size changes (only used for re-layout when dragging the separator bar)
                     const containerElement = document.getElementById('container');
                     if (containerElement && window.ResizeObserver) {
                         const resizeObserver = new ResizeObserver(() => {
-                            // 当容器大小变化时，重新布局Monaco编辑器
+                            // When the container size changes, re-layout the Monaco editor
                             if (editor) {
                                 editor.layout();
                             }
                         });
                         resizeObserver.observe(containerElement);
                         
-                        // 确保在编辑器销毁时清理ResizeObserver
+                        // Make sure to clean up the ResizeObserver when the editor is destroyed
                         editor.onDidDispose(() => {
                             resizeObserver.disconnect();
                         });
                     }
 
-                    // 添加禁用选择的配置
+                    // Add configuration to disable selection
                     editor.updateOptions({
                         readOnly: true,
                         domReadOnly: true,
                         mouseStyle: 'pointer',
                         cursorWidth: 0,
                         selectOnLineNumbers: true,
-                        selectionClipboard: true,    // 禁用选择到剪贴板
-                        contextmenu: false,           // 禁用右键菜单
-                        links: false,  // 禁用所有链接功能
-                        quickSuggestions: false,  // 禁用快速建议
-                        keyboardHandler: null,       // 禁用键盘处理
-                        find: {                     // 禁用查找功能
+                        selectionClipboard: true,    // Disable selection to clipboard
+                        contextmenu: false,           // Disable right-click menu
+                        links: false,  // Disable all link functions
+                        quickSuggestions: false,  // Disable quick suggestions
+                        keyboardHandler: null,       // disable keyboard handling
+                        find: {                     // Disable the find function
                             addExtraSpaceOnTop: false,
                             autoFindInSelection: 'never',
                             seedSearchStringFromSelection: 'select'
                         }
                     });
 
-                    // 强制设置鼠标样式
+                    // Force the mouse style to be set
                     const forcePointerCursor = (isOverText = false) => {
                         const editorContainer = editor.getDomNode();
                         if (editorContainer) {
-                            // 根据是否悬停在文本上设置不同的光标样式
+                            // Set different cursor styles depending on whether you are hovering over text
                             const cursorStyle = isOverText ? 'pointer' : 'default';
                             editorContainer.style.cursor = cursorStyle;
                             
-                            // 遍历所有子元素，设置光标样式
+                            // Traverse all child elements and set the cursor style
                             const elements = editorContainer.querySelectorAll('*');
                             elements.forEach(el => {
                                 el.style.cursor = cursorStyle;
@@ -281,44 +281,44 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         }
                     };
 
-                    // 初始化时设置为默认光标
+                    // Set to the default cursor during initialization
                     forcePointerCursor(false);
 
-                    // 定义使用JavaScript提供器作为默认的语言列表
+                    // Define the language list using JavaScript provider as default
                     const defaultLanguages = [
                         'python', 'java', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin', 'perl', 'lua', 'vb', 'vbnet', 'cobol', 'fortran', 'pascal', 'delphi', 'ada',
                         'erlang', 
                     ];
 
-                    // 为默认语言设置JavaScript提供器
+                    // Set up the JavaScript provider for the default language
                     defaultLanguages.forEach(lang => {
                         monaco.languages.setMonarchTokensProvider(lang, languageConfig_js);
                     });
 
-                    // 为 JavaScript 定义自定义 token 提供器
+                    // Define a custom token provider for JavaScript
                     monaco.languages.setMonarchTokensProvider('javascript', languageConfig_js);
                     monaco.languages.setMonarchTokensProvider('typescript', languageConfig_js);
 
-                    // 为 C/C++ 定义自定义 token 提供器
+                    // Define a custom token provider for C/C++
                     monaco.languages.setMonarchTokensProvider('cpp', languageConfig_cpp);
                     monaco.languages.setMonarchTokensProvider('c', languageConfig_cpp);
 
                     monaco.languages.setMonarchTokensProvider('csharp', languageConfig_cs);
 
-                    // 添加一个简单的 token 检测函数
+                    // Add a simple token detection function
                     // function logTokenInfo() {
                     //     const testCode = 'AA::BB::CC a, b, c = 0;';//editor.getValue();
                     //     const languageId = editor.getModel().getLanguageId();
                         
-                    //     console.log('[definition] 测试代码:', testCode);
-                    //     console.log('[definition] 语言ID:', languageId);
+                    //     console.log('[definition] Test code:', testCode);
+                    //     console.log('[definition] Language ID:', languageId);
                         
-                    //     // 使用 Monaco 的 tokenize 函数解析代码
+                    //     // Use Monaco's tokenize function to parse the code
                     //     const tokens = monaco.editor.tokenize(testCode, languageId);
                         
-                    //     console.log('[definition] Token 解析结果:', tokens);
+                    //     console.log('[definition] Token parsing result:', tokens);
                         
-                    //     // 详细打印每个 token
+                    //     // Print each token in detail
                     //     if (tokens && tokens.length > 0) {
                     //         let lastOffset = 0;
                     //         tokens[0].forEach(token => {
@@ -331,31 +331,31 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                     //             console.log(`[definition] Token: "${tokenType}",  : "${tokenText}"`);
                     //         });
                     //     } else {
-                    //         console.log('[definition] 没有找到 token 信息');
+                    //         console.log('[definition] token information not found');
                     //     }
                     // }
 
-                    // // 在可能重置样式的场景中重新设置
+                    // // Reset in scenarios where the style may be reset
                     // editor.onDidChangeModelContent(() => {
-                    //     console.log('[definition] 编辑器内容已更改，token 解析结果:');
+                    //     console.log('[definition] Editor content has changed, token parsing result:');
                     //     logTokenInfo();
                     // });
                     //editor.onDidScrollChange(forcePointerCursor);
                     //editor.onDidChangeConfiguration(forcePointerCursor);
 
-                    // 检查readOnly设置
+                    // Check 'readOnly' setting
                     //console.log('[definition]cursor type:', editor.getOption(monaco.editor.EditorOption.mouseStyle));
 
-                    // 在创建编辑器实例后添加以下代码
+                    // Add the following code after creating the editor instance
                     editor._standaloneKeybindingService.addDynamicKeybinding(
                         '-editor.action.openLink',
                         null,
-                        () => {} // 空函数，阻止Ctrl+Click跳转
+                        () => {} // Empty function, prevents Ctrl+Click from jumping
                     );
 
-                    // 完全禁用键盘事件
+                    // Disable keyboard events completely
                     // editor.onKeyDown((e) => {
-                    //     // 允许 Ctrl+C 复制操作
+                    //     // Allow Ctrl+C to copy
                     //     // if (e.ctrlKey && e.code === 'KeyC') {
                     //     //     return;
                     //     // }
@@ -363,12 +363,12 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                     //     // e.stopPropagation();
                     // });
 
-                    // 完全禁用选择
+                    // Disable selection completely
                     // editor.onDidChangeCursorSelection(() => {
-                    //     // 获取当前光标位置
+                    //     // Get the current cursor position
                     //     const position = editor.getPosition();
                     //     if (position) {
-                    //         // 将选择范围设置为光标所在位置
+                    //         // Set the selection range to the cursor position
                     //         editor.setSelection({
                     //             startLineNumber: position.lineNumber,
                     //             startColumn: position.column,
@@ -391,7 +391,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             }
                             //e.preventDefault();
                             //e.stopPropagation();
-                            //console.log('[definition] DOM 级别拦截到双击事件', e.target);
+                            //console.log('[definition] DOM level intercepts double-click event', e.target);
                             
                             if (e.target.type !== monaco.editor.MouseTargetType.CONTENT_TEXT) {
                                 vscode.postMessage({
@@ -401,31 +401,31 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             }
 
                             return true;
-                        }, true); // 使用捕获阶段，确保在事件到达 Monaco 之前拦截
+                        }, true); // Use the capture phase to ensure that the event is intercepted before it reaches Monaco
 
                         editorDomNode.addEventListener('contextmenu', (e) => {
                                 if (e.ctrlKey) {
-                                    // Ctrl+右键，手动弹出 Monaco 菜单
-                                    // 需要调用 Monaco 的菜单 API
-                                    // 下面是常见做法（不同版本API略有不同）
+                                    // Ctrl+right click to manually pop up the Monaco menu
+                                    // Need to call Monaco's menu API
+                                    // The following is a common practice (different versions of the API are slightly different)
                                     if (editor._contextMenuService) {
-                                        // 6.x/7.x 版本
+                                        // 6.x/7.x version
                                         editor._contextMenuService.showContextMenu({
                                             getAnchor: () => ({ x: e.clientX, y: e.clientY }),
                                             getActions: () => editor._getMenuActions(),
                                             onHide: () => {},
                                         });
                                     } else if (editor.trigger) {
-                                        // 旧版
+                                        // Old version
                                         editor.trigger('keyboard', 'editor.action.showContextMenu', {});
                                     }
                                 } else {
-                                    // 普通右键，执行你自己的逻辑
+                                    // Normal right click, execute your own logic
                                     editor.focus();
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    // 这里写你自己的右键菜单逻辑
-                                    //console.log('自定义右键菜单');
+                                    // Write your own right-click menu logic here
+                                    //console.log('Custom right-click menu');
                                 }
                             }, true);
                     }
@@ -436,18 +436,18 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         return false;
                     }, true);
 
-                    // 处理鼠标侧键
+                    // Process the mouse side buttons
                     editor.getDomNode().addEventListener('auxclick', (e) => {
                         //console.log('[definition] auxclick:', e);
-                        // 阻止默认行为
+                        // Prevent default behavior
                         e.preventDefault();
                         e.stopPropagation();
-                        if (e.button === 3) { // 鼠标后退键
+                        if (e.button === 3) { // Mouse back button
                             vscode.postMessage({
                                 type: 'navigate',
                                 direction: 'back'
                             });
-                        } else if (e.button === 4) { // 鼠标前进键
+                        } else if (e.button === 4) { // Mouse forward button
                             vscode.postMessage({
                                 type: 'navigate',
                                 direction: 'forward'
@@ -459,31 +459,31 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                     //     e.event.preventDefault();
                     //     e.event.stopPropagation();
                     //     //console.log('[definition] onMouseDown: ', e);
-                    //     return false;  // 阻止默认处理
+                    //     return false;  // Prevent default processing
                     // });
 
                     // editor.onMouseLeave((e) => {
-                    //     //e.event.preventDefault();
-                    //     //e.event.stopPropagation();
+                    //     e.event.preventDefault();
+                    //     e.event.stopPropagation();
                     //     forcePointerCursor(false);
-                    //     return true;  // 阻止默认处理
+                    //     return false;  // Prevent default processing
                     // });
 
-                    // 添加鼠标悬停事件处理
+                    // Add mouse hover event handling
                     let currentDecorations = [];
                     editor.onMouseMove((e) => {
-                        // 默认使用默认光标
+                        // Use the default cursor by default
                         let isOverText = false;
 
-                        // 获取当前单词
+                        // Get the current word
                         const model = editor.getModel();
                         const position = e.target.position;
                         if (model && position && e.target.type === monaco.editor.MouseTargetType.CONTENT_TEXT) {
                             const word = model.getWordAtPosition(position);
                             if (word) {
-                                // 鼠标悬停在文本上，使用手型光标
+                                // Hover the mouse over the text, using the hand cursor
                                 isOverText = true;
-                                // 添加新装饰
+                                // Add new decoration
                                 currentDecorations = editor.deltaDecorations(currentDecorations, [{
                                     range: new monaco.Range(
                                     position.lineNumber,
@@ -496,7 +496,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                     }
                                 }]);
 
-                                // 鼠标移出时清除装饰
+                                // Clear the decoration when the mouse moves out
                                 const container = editor.getDomNode();
                                 if (container) {
                                     container.addEventListener('mouseleave', () => {
@@ -505,66 +505,67 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                 }
                             }
                         } else {
-                            // 当Ctrl键未按下时清除装饰
+                            // Clear the decoration when the Ctrl key is not pressed
                             currentDecorations = editor.deltaDecorations(currentDecorations, []);
                         }
-                        // 根据鼠标位置更新光标样式
+                        // Update the cursor style based on the mouse position
                         forcePointerCursor(isOverText);
+
                         return true;
 
                         // if (isOverText) {
                         //     e.event.preventDefault();
                         //     e.event.stopPropagation();
-                        //     return false;  // 阻止默认处理
+                        //     return false;  // Preventing default processing
                         // }
                         // else {
                         //     return true;
                         // }
                     });
 
-                    // 完全禁用定义跳转功能
+                    // Completely disable define jump functionality
                     editor._standaloneKeybindingService.addDynamicKeybinding(
                         '-editor.action.goToDefinition',
                         null,
-                        () => {} // 空函数，阻止跳转
+                        () => {} // Empty function, prevent jump
                     );
 
-                    // 在创建编辑器实例后添加以下代码
+                    // Add the following code after creating the editor instance
                     const originalGetDefinitionsAtPosition = editor._codeEditorService.getDefinitionsAtPosition;
                     editor._codeEditorService.getDefinitionsAtPosition = function(model, position, token) {
-                        // 返回空数组，表示没有定义可跳转
+                        // Returns an empty array, indicating that there is no definition to jump to
                         return Promise.resolve([]);
                     };
 
-                    // 覆盖peek实现
+                    // Override peek implementation
                     const originalPeekDefinition = editor._codeEditorService.peekDefinition;
                     editor._codeEditorService.peekDefinition = function(model, position, token) {
-                        // 返回空数组，表示没有定义可peek
+                        // Returns an empty array, indicating that there is no definition to peek
                         return Promise.resolve([]);
                     };
 
-                    // 覆盖reference实现
+                    // Override reference implementation
                     const originalFindReferences = editor._codeEditorService.findReferences;
                     editor._codeEditorService.findReferences = function(model, position, token) {
-                        // 返回空数组，表示没有引用可查找
+                        // Returns an empty array, indicating that there are no references to find
                         return Promise.resolve([]);
                     };
 
-                    // 覆盖implementation实现
+                    // Override implementation
                     const originalFindImplementations = editor._codeEditorService.findImplementations;
                     editor._codeEditorService.findImplementations = function(model, position, token) {
-                        // 返回空数组，表示没有实现可查找
+                        // Returns an empty array, indicating that there is no implementation to find
                         return Promise.resolve([]);
                     };
 
-                    // 覆盖type definition实现
+                    // Override type definition implementation
                     const originalFindTypeDefinition = editor._codeEditorService.findTypeDefinition;
                     editor._codeEditorService.findTypeDefinition = function(model, position, token) {
-                        // 返回空数组，表示没有类型定义可查找
+                        // Returns an empty array, indicating that there is no type definition to find
                         return Promise.resolve([]);
                     };
 
-                    // 完全禁用所有与跳转相关的命令
+                    // Completely disable all jump related commands
                     const disabledCommands = [
                         'editor.action.openLink',
                         'editor.action.openLinkToSide',
@@ -587,18 +588,18 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         );
                     });
 
-                    // 处理链接点击事件 - 在Monaco内部跳转
+                    // Handle link click events - jump inside Monaco
                     editor.onMouseUp((e) => {
                         //console.log('[definition] Mouse up event:', e.target, e.event);
-                        // 完全阻止事件传播
+                        // Completely prevent event propagation
                         //e.event.preventDefault();
                         //e.event.stopPropagation();
-                        // 使用 e.event.buttons 判断鼠标按键
-                        //const isLeftClick = (e.event.buttons & 1) === 1; // 左键
-                        //const isRightClick = (e.event.buttons & 2) === 2; // 右键
+                        // Use e.event.buttons to determine the mouse button
+                        //const isLeftClick = (e.event.buttons & 1) === 1; // Left button
+                        //const isRightClick = (e.event.buttons & 2) === 2; // Right click
                         
                         if (e.target.type === monaco.editor.MouseTargetType.CONTENT_TEXT) {
-                            // 获取当前单词
+                            // Get the current word
                             const model = editor.getModel();
                             if (!model) {
                                 //console.log('[definition] **********************no model found************************');
@@ -606,11 +607,10 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                 editor.setModel(model);
                             }
                             const position = e.target.position;
-                            // 检查点击位置是否在当前选择范围内
+                            // Check if the click position is within the current selection range
                             const selection = editor.getSelection();
                             const isClickedTextSelected = selection && !selection.isEmpty() && selection.containsPosition(position);
                             if (model && position && !isClickedTextSelected) {
-                                //console.log('[definition] start to mid + jump definition: ', e);
                                 const word = model.getWordAtPosition(position);
                                 if (word) {
                                     if (e.event.rightButton) {
@@ -641,19 +641,19 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
 
                     //console.log('[definition] Monaco editor created');
 
-                    // 通知扩展编辑器已准备好
+                    // Notify the extension that the editor is ready
                     vscode.postMessage({ type: 'editorReady' });
                     //console.log('[definition] Editor ready message sent');
                     
-                    // 请求初始内容
+                    // Request initial content
                     vscode.postMessage({ type: 'requestContent' });
                     //console.log('[definition] Content requested');
 
-                    // 更新文件名显示函数
+                    // Update file name display function
                     function updateFilenameDisplay(uri) {
                         const filenameDisplay = document.querySelector('.filename-display');
                         if (uri && filenameDisplay) {
-                            // 从URI中提取文件名
+                            // Extract the file name from the URI
                             const filename = uri.split('/').pop().split('\\').pop();
                             let filePath = uri;
                             try {
@@ -676,15 +676,15 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             return;
                         }
 
-                        // 只有在有多个定义时才显示定义列表面板
+                        // Only show the definition list panel if there are multiple definitions
                         const definitionList = document.querySelector('#definition-list');
                         if (definitionList) {
                             if (definitions && definitions.length > 1) {
                                 definitionList.style.display = 'flex';
                             } else {
-                                // 如果只有一个或没有定义，隐藏列表面板
+                                // If there is only one or none defined, hide the list panel
                                 definitionList.style.display = 'none';
-                                // 强制Monaco编辑器重新布局以占满整个空间
+                                // Force the Monaco editor to re-layout to fill the entire space
                                 if (editor) {
                                     setTimeout(() => {
                                         editor.layout();
@@ -694,10 +694,10 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             }
                         }
 
-                        // 清空现有内容
+                        // Clear the existing content
                         listItems.innerHTML = '';
 
-                        // 如果没有定义，显示空状态
+                        // If not defined, display empty state
                         if (!definitions || definitions.length === 0) {
                             listItems.innerHTML = '<div style="padding: 10px; color: var(--vscode-descriptionForeground); font-style: italic;">No definitions found</div>';
                             return;
@@ -705,14 +705,14 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
 
                         const getFileName = (path) => path.replace(/^.*[\\/]/, '');
 
-                        // 创建定义项
+                        // Create definition items
                         definitions.forEach((def, index) => {
                             const item = document.createElement('div');
                             item.className = `definition-item${def.isActive ? ' active' : ''}`;
                             
-                            // 直接使用def中的数据，不需要解析location字符串
+                            // Use the data in def directly without parsing the 'location' string
                             const filePath = def.filePath;
-                            const lineNumber = def.lineNumber + 1; // 转换为1-based行号
+                            const lineNumber = def.lineNumber + 1; // Convert to 1-based line number
                             const columnNumber = def.columnNumber || 1;
 
                             //console.log('[definition] File name:', filePath, lineNumber, columnNumber);
@@ -727,28 +727,28 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                 </div>
                             `;
 
-                            // 添加点击事件
+                            // Add click event
                             item.addEventListener('click', () => {
                                 selectDefinitionItem(index, def);
                             });
 
-                            // 添加双击事件 - 直接复用底部导航栏的双击跳转功能
+                            // Add double-click event - directly reuse the double-click jump function of the bottom navigation bar
                             item.addEventListener('dblclick', () => {
-                                // 先选择当前定义项，更新Context Window的内容
+                                // First select the current definition item and update the content of the Context Window
                                 selectDefinitionItem(index, def);
                                 
-                                // 然后直接调用底部导航栏的双击跳转逻辑
+                                // Then directly call the double-click jump logic of the bottom navigation bar
                                 setTimeout(() => {
                                     vscode.postMessage({
                                         type: 'doubleClick',
                                         location: 'bottomArea'
                                     });
-                                }, 100); // 稍微延迟确保内容已更新
+                                }, 100); // Delay slightly to ensure content is updated
                             });
 
                             listItems.appendChild(item);
                             
-                            // 如果是默认激活的项，自动选择它
+                            // If it is the default activated item, automatically select it
                             if (def.isActive) {
                                 setTimeout(() => {
                                     selectDefinitionItem(index, def);
@@ -756,10 +756,10 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             }
                         });
 
-                        // 添加键盘事件监听
+                        // Add keyboard event listener
                         setupDefinitionListKeyboardNavigation(definitions);
                         
-                        // 强制Monaco编辑器重新布局以适应新的容器大小
+                        // Force the Monaco editor to re-layout to fit the new container size
                         if (editor) {
                             setTimeout(() => {
                                 editor.layout();
@@ -768,17 +768,17 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                     }
 
                     function selectDefinitionItem(index, def) {
-                        // 移除其他项的active状态
+                        // Remove the active state of other items
                         document.querySelectorAll('.definition-item').forEach(i => i.classList.remove('active'));
-                        // 添加当前项的active状态
+                        // Add the active state of the current item
                         const items = document.querySelectorAll('.definition-item');
                         if (items[index]) {
                             items[index].classList.add('active');
-                            // 滚动到可见区域
+                            // Scroll to the visible area
                             items[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }
 
-                        // 发送消息到扩展
+                        // Send a message to the extension
                         vscode.postMessage({
                             type: 'definitionItemSelected',
                             symbolName: def.title,
@@ -788,19 +788,19 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         });
                     }
 
-                    // 全局变量存储当前定义数据和键盘处理函数
+                    // Global variables store currently defined data and keyboard processing functions
                     let currentDefinitions = [];
                     let handleDefinitionListKeydown = null;
 
                     function setupDefinitionListKeyboardNavigation(definitions) {
                         currentDefinitions = definitions;
                         
-                        // 移除之前的事件监听器
+                        // Remove the previous event listener
                         if (handleDefinitionListKeydown) {
                             document.removeEventListener('keydown', handleDefinitionListKeydown);
                         }
                         
-                        // 创建新的事件处理函数
+                        // Create a new event handling function
                         handleDefinitionListKeydown = function(e) {
                             const items = document.querySelectorAll('.definition-item');
                             if (items.length === 0) return;
@@ -841,7 +841,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                 
                                 case 'Escape':
                                     e.preventDefault();
-                                    // 发送消息关闭定义列表
+                                    // Send a message to close the definition list
                                     vscode.postMessage({
                                         type: 'closeDefinitionList'
                                     });
@@ -849,12 +849,12 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                 
                                 case 'Enter':
                                     e.preventDefault();
-                                    // Enter键选择当前项（已经通过selectDefinitionItem处理了）
+                                    // Enter key selects the current item (already handled by 'selectDefinitionItem')
                                     break;
                             }
                         };
                         
-                        // 添加新的事件监听器
+                        // Add a new event listener
                         document.addEventListener('keydown', handleDefinitionListKeydown);
                     }
 
@@ -864,7 +864,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             listItems.innerHTML = '';
                         }
                         
-                        // 隐藏定义列表，让Monaco编辑器占满整个空间
+                        // Hide the definition list and let the Monaco editor take up the entire space
                         const definitionList = document.querySelector('#definition-list');
                         const mainContainer = document.querySelector('#main-container');
                         
@@ -876,21 +876,21 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                             mainContainer.style.flexDirection = 'row';
                         }
                         
-                        // 强制Monaco编辑器重新布局以适应新的容器大小
+                        // Force the Monaco editor to re-layout to fit the new container size
                         if (editor) {
                             setTimeout(() => {
                                 editor.layout();
                             }, 100);
                         }
                         
-                        // 移除键盘事件监听器
+                        // Remove the keyboard event listener
                         if (handleDefinitionListKeydown) {
                             document.removeEventListener('keydown', handleDefinitionListKeydown);
                             handleDefinitionListKeydown = null;
                         }
                     }
                     
-                    // 处理来自扩展的消息
+                    // Handle messages from extensions
                     window.addEventListener('message', event => {
                         const message = event.data;
                         //console.log('[definition] Received message:', message);
@@ -898,16 +898,16 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         try {
                             switch (message.type) {
                                 /*case 'updateEditorConfiguration':
-                                    // 更新编辑器配置
+                                    // Update editor configuration
                                     if (editor && message.configuration) {
                                         //console.log('[definition] Updating editor configuration');
                                         
-                                        // 更新编辑器选项
+                                        // Update editor options
                                         editor.updateOptions(message.configuration || {});
                                         
-                                        // 更新主题
+                                        // Update the theme
                                         if (message.configuration.tokenColorCustomizations) {
-                                            // 确保colors是有效对象
+                                            // Make sure colors is a valid object
                                             const safeColors = {};
                                             const colors = window.vsCodeEditorConfiguration.tokenColorCustomizations;
                                             if (colors && typeof colors === 'object') {
@@ -925,22 +925,22 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                             });
                                             try {
                                                 monaco.editor.setTheme('vscode-custom');
-                                                //console.log('[definition] 自定义主题已应用2');
+                                                //console.log('[definition] Custom theme applied 2');
                                             } catch (themeError) {
-                                                //console.error('[definition] 应用自定义主题失败2:', themeError);
-                                                monaco.editor.setTheme('vs'); // 回退到默认主题
+                                                //console.error('[definition] Failed to apply custom theme 2:', themeError);
+                                                monaco.editor.setTheme('vs'); // Fall back to the default theme
                                             }
                                         } else if (message.configuration.theme) {
                                             monaco.editor.setTheme(message.configuration.theme);
                                         }
 
-                                        // 更新语义高亮
+                                        // Update semantic highlighting
                                         if (message.configuration.semanticTokenColorCustomizations) {
                                             try {
-                                                // Monaco不支持为所有语言(*)设置通用的语义标记提供程序
+                                                // Monaco does not support setting a common semantic markup provider for all languages (*)
                                                 const supportedLanguages = ['javascript', 'typescript', 'html', 'css', 'json', 'markdown', 'cpp', 'python', 'java', 'go'];
                                                 
-                                                // 为每种支持的语言设置语义标记提供程序
+                                                // Set up the semantic markup provider for each supported language
                                                 supportedLanguages.forEach(lang => {
                                                     try {
                                                         monaco.languages.setTokensProvider(lang, {
@@ -950,20 +950,20 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                                             }
                                                         });
                                                     } catch (langError) {
-                                                        //console.warn(`[definition] 为 ${lang} 更新语义标记提供程序失败:`, langError);
+                                                        //console.warn(`[definition] Failed to update semantic tag provider for ${lang}:`, langError);
                                                     }
                                                 });
                                                 
-                                                //console.log('[definition] 语义高亮配置已更新');
+                                                //console.log('[definition] semantic highlight configuration has been updated');
                                             } catch (error) {
-                                                //console.error('[definition] 更新语义高亮配置失败:', error);
+                                                //console.error('[definition] Update semantic highlight configuration failed:', error);
                                             }
                                         }
                                     }
                                     break;*/
                                 case 'updateContextEditorCfg':
                                     if (message.contextEditorCfg) {
-                                        // 重新定义主题
+                                        // Redefine the theme
                                         monaco.editor.defineTheme('custom-vs', {
                                             base: light ? 'vs' : 'vs-dark',
                                             inherit: true,
@@ -973,18 +973,18 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                                 "editor.inactiveSelectionBackground": message.contextEditorCfg.inactiveSelectionBackground,
                                                 "editor.selectionHighlightBackground": message.contextEditorCfg.selectionHighlightBackground,
                                                 "editor.selectionHighlightBorder": message.contextEditorCfg.selectionHighlightBorder,
-                                                // ... 其他颜色
+                                                // ... other colors
                                             }
                                         });
                                         
-                                        // 重新应用主题
+                                        // Reapply the theme
                                         if (editor) {
                                             editor.updateOptions({ theme: 'custom-vs' });
                                         }
                                     }
                                     break;
                                 case 'updateTheme':
-                                    // 更新编辑器主题
+                                    // Update editor theme
                                     if (editor && message.theme) {
                                         //monaco.editor.setTheme(message.theme);
                                     }
@@ -1001,7 +1001,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                             editor.setModel(model);
                                         }
 
-                                        // 清除之前的装饰
+                                        // Clear the previous decoration
                                         const existingDecorations = editor.getDecorationsInRange(new monaco.Range(
                                             1, 1,
                                             model.getLineCount(),
@@ -1012,12 +1012,12 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                             editor.deltaDecorations(symbolDecorations.map(d => d.id), []);
                                         }
                                         
-                                        // 滚动到指定行
+                                        // Scroll to the specified line
                                         if (message.scrollToLine) {
                                             //console.log('[definition] Scrolling to line:', message.scrollToLine);
                                             
 
-                                            // 添加行高亮装饰
+                                            // Add row highlight decoration
                                             const lineDecorations = editor.deltaDecorations([], [{
                                                 range: new monaco.Range(message.scrollToLine, 1, message.scrollToLine, 1),
                                                 options: {
@@ -1030,18 +1030,18 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                             let line = message.scrollToLine;
                                             let column = 1;
                                             
-                                            // 如果有定义名，高亮它
+                                            // If there is a definition name, highlight it
                                             if (message.symbolName) {
                                                 const text = model.getValue();
                                                 const lines = text.split('\n');
                                                 const lineText = lines[message.scrollToLine - 1] || '';
                                                 
-                                                // 在当前行查找符号名
+                                                // Search for symbol name in the current line
                                                 const symbolIndex = lineText.indexOf(message.symbolName);
                                                 //console.log('[definition] Symbol index:', symbolIndex);
                                                 if (symbolIndex !== -1) {
                                                     column = symbolIndex + 1;
-                                                    // 添加符号高亮装饰
+                                                    // Add symbol highlight decoration
                                                     editor.deltaDecorations([], [{
                                                         range: new monaco.Range(
                                                             message.scrollToLine,
@@ -1073,18 +1073,18 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                     }
                                     break;
                                 case 'updateDefinitionList':
-                                    // 更新定义列表
+                                    // Update the definition list
                                     if (message.definitions && Array.isArray(message.definitions)) {
                                         updateDefinitionList(message.definitions);
                                     }
                                     break;
                                 case 'clearDefinitionList':
-                                    // 清空定义列表
+                                    // Clear the definition list
                                     clearDefinitionList();
                                     break;
                                 case 'update':
                                     //console.log('[definition] Updating editor content');
-                                    // 显示编辑器，隐藏原始内容区域
+                                    // Show the editor and hide the original content area
                                     document.getElementById('container').style.display = 'block';
                                     document.getElementById('main').style.display = 'none';
 
@@ -1092,7 +1092,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                     //console.log('[definition] Updating editor content with URI:', uri);
                                     updateFilenameDisplay(uri);
                                     
-                                    // 更新编辑器内容和语言
+                                    // Update editor content and language
                                     if (editor) {
                                         const models = monaco.editor.getModels();
                                         let model = models.length > 0 ? models[0] : null;
@@ -1107,19 +1107,19 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                             editor.setModel(model);
                                         } else {
                                             //console.log('[definition] Updating existing model');
-                                            // 如果语言变了，更新语言
+                                            // If the language has changed, update the language
                                             if (model.getLanguageId() !== message.languageId && message.languageId) {
                                                 //console.log('[definition] Changing language from', model.getLanguageId(), 'to', message.languageId);
                                                 monaco.editor.setModelLanguage(model, message.languageId);
                                             }
-                                            // 更新内容
+                                            // Update content
                                             model.setValue(message.body);
                                         }
 
                                         const initialTheme = editor.getOption(monaco.editor.EditorOption.theme);
-                                        //console.log('[definition] 初始主题:', initialTheme);
+                                        //console.log('[definition] Initial theme:', initialTheme);
 
-                                        // 清除之前的装饰
+                                        // Clear the previous decoration
                                         const existingDecorations = editor.getDecorationsInRange(new monaco.Range(
                                             1, 1,
                                             model.getLineCount(),
@@ -1130,7 +1130,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                             editor.deltaDecorations(symbolDecorations.map(d => d.id), []);
                                         }
                                         
-                                        // 滚动到指定行
+                                        // Scroll to the specified line
                                         if (message.scrollToLine) {
                                             //console.log('[definition] Scrolling to line:', message.curLine);
                                             // force layout before scrolling
@@ -1141,7 +1141,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                                 line = message.curLine;
                                             editor.revealLineInCenter(line);
 
-                                            // 添加行高亮装饰
+                                            // Add row highlight decoration
                                             const lineDecorations = editor.deltaDecorations([], [{
                                                 range: new monaco.Range(message.scrollToLine, 1, message.scrollToLine, 1),
                                                 options: {
@@ -1151,20 +1151,20 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                                 }
                                             }]);
                                             let column = 1;
-                                            // 如果有定义名，高亮它
+                                            // If there is a definition name, highlight it
                                             if (message.symbolName) {
                                                 const text = model.getValue();
                                                 const lines = text.split('\n');
                                                 const lineText = lines[message.scrollToLine - 1] || '';
                                                 
-                                                // 在当前行查找符号名
+                                                // Search for symbol name in the current line
                                                 const symbolRegex = new RegExp(`\\b${message.symbolName}\\b`);
                                                 const symbolMatch = lineText.match(symbolRegex);
                                                 const symbolIndex = symbolMatch ? symbolMatch.index : -1;
                                                 //console.log('[definition] Symbol index:', symbolIndex);
                                                 if (symbolIndex !== -1) {
                                                     column = symbolIndex + 1;
-                                                    // 添加符号高亮装饰
+                                                    // Add symbol highlight decoration
                                                     editor.deltaDecorations([], [{
                                                         range: new monaco.Range(
                                                             message.scrollToLine,
@@ -1182,10 +1182,10 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                                 }
                                             }
                                         }
-                                        // 内容设置完成后，发送确认消息
+                                        // After the content is set, send a confirmation message
                                         setTimeout(() => {
                                             vscode.postMessage({ type: 'contentReady' });
-                                        }, 1); // 稍微延迟确保渲染完成
+                                        }, 1); // Delay slightly to ensure rendering is complete
                                     } else {
                                         console.error('[definition] Editor not initialized');
                                     }
@@ -1193,7 +1193,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                                     
                                 case 'noContent':
                                     //console.log('[definition] Showing no content message');
-                                    // 显示原始内容区域，隐藏编辑器
+                                    // Show the original content area and hide the editor
                                     document.getElementById('container').style.display = 'none';
                                     document.getElementById('main').style.display = 'block';
                                     document.getElementById('main').innerHTML = message.body;
@@ -1220,7 +1220,7 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
                         } catch (error) {
                             console.error('[definition] Error handling message:', error);
                             document.getElementById('main').style.display = 'block';
-                            document.getElementById('main').innerHTML = '<div style="color: red; padding: 20px;">处理消息时出错: ' + error.message + '</div>';
+                            document.getElementById('main').innerHTML = '<div style="color: red; padding: 20px;">Error processing message: ' + error.message + '</div>';
                         }
                     });
                     
@@ -1243,12 +1243,12 @@ import { languageConfig_js, languageConfig_cpp, languageConfig_cs } from './lang
             document.getElementById('main').innerHTML = '<div style="color: red; padding: 20px;">Failed to load Monaco loader.js</div>';
         };
         
-        // 将脚本添加到文档中
+        // Add the script to your document
         document.head.appendChild(loaderScript);
         
     } catch (error) {
         console.error('[definition] Error in main script:', error);
         document.getElementById('main').style.display = 'block';
-        document.getElementById('main').innerHTML = '<div style="color: red; padding: 20px;">初始化失败: ' + error.message + '</div>';
+        document.getElementById('main').innerHTML = '<div style="color: red; padding: 20px;">Initialization failed: ' + error.message + '</div>';
     }
 })();

@@ -23,7 +23,7 @@
 	},
 	"categories": [
 		"Other",
-        "Programming Languages"
+		"Programming Languages"
 	],
 	"activationEvents": [
 		"onView:contextView.context",
@@ -122,22 +122,22 @@
                 "contextView.contextWindow.selectionBackground": {
                     "type": "string",
                     "default": "#07c2db71",
-                    "description": "Context Window 选中区域背景色"
+                    "description": "Context Window selected area background color"
                 },
                 "contextView.contextWindow.inactiveSelectionBackground": {
                     "type": "string",
                     "default": "#07c2db71",
-                    "description": "Context Window 非活动选中区域背景色"
+                    "description": "Context Window inactive selection area background color"
                 },
                 "contextView.contextWindow.selectionHighlightBackground": {
                     "type": "string",
                     "default": "#5bdb0771",
-                    "description": "Context Window 选中高亮背景色"
+                    "description": "Context Window selected highlight background color"
                 },
                 "contextView.contextWindow.selectionHighlightBorder": {
                     "type": "string",
                     "default": "#5bdb0791",
-                    "description": "Context Window 选中高亮边框色"
+                    "description": "Context Window selected highlight border color"
                 }
 			}
 		}

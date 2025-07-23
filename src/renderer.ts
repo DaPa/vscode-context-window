@@ -5,19 +5,19 @@ export interface FileContentInfo {
     line: number;
     column: number;
     jmpUri: string;
-    languageId: string; // 添加语言ID用于Monaco Editor
-    symbolName: string; // 添加符号名称字段
+    languageId: string; // Add language ID for Monaco Editor
+    symbolName: string; // Add symbol name field
 }
 
 export class Renderer {
     private readonly _disposables: vscode.Disposable[] = [];
         
-    // 创建一个事件发射器用于通知需要重新渲染
+    // Create an event emitter to notify that re-rendering is needed
     private readonly _onNeedsRender = new vscode.EventEmitter<void>();
     public readonly needsRender: vscode.Event<void>;
 
     constructor() {
-        // 使用自己的事件发射器
+        // Use your own event emitter
         this.needsRender = this._onNeedsRender.event;
     }
 
@@ -52,14 +52,14 @@ export class Renderer {
             return { content: '', line: 0, column: 0, jmpUri: '', languageId: document.languageId, symbolName: '' }
         };
 
-        // 直接返回内容，不再使用highlighter
+        // Return the content directly without using highlighter
         return {
             content: parts.join('\n'),
             line: docs[0].line,
             column: docs[0].column,
             jmpUri: docs[0].jmpUri,
             languageId: docs[0].languageId,
-            symbolName: selectedText || '' // 如果没有选中文本，则使用空字符串
+            symbolName: selectedText || '' // If no text is selected, use an empty string
         };
     }
 
@@ -68,7 +68,7 @@ export class Renderer {
         // console.debug(`uri = ${uri}`);
         // console.debug(`range = ${range.start.line} - ${range.end.line}`);
 
-        // 检查文件扩展名，如果是 .inc 文件则强制使用 cpp 语言
+        // Check the file extension, if it is a ".inc" file, force the use of cpp language
         const fileExtension = uri.fsPath.toLowerCase().split('.').pop();
         const finalLanguageId = fileExtension === 'inc' ? 'cpp' : (doc.languageId || languageId);
 
@@ -85,7 +85,7 @@ export class Renderer {
             column: range.start.character,
             jmpUri: uri.toString(),
             languageId: finalLanguageId,
-            symbolName: '' // 使用文档的语言ID或传入的语言ID
+            symbolName: '' // Use the document's language ID or the passed-in language ID
         };
     }
 }
